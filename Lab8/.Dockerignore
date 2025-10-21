@@ -1,0 +1,22 @@
+# Entornos virtuales
+venv/
+.env/
+__pycache__/
+*.pyc
+
+# Archivos temporales o de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de configuración local
+*.log
+*.sqlite
+*.db
+*.ipynb_checkpoints/
+*.swp
+*.bak
+
+
+# Carpetas que no son necesarias
+mlruns/
+plots/

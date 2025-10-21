@@ -5,26 +5,18 @@ import numpy as np
 from pathlib import Path
 from fastapi.responses import JSONResponse
 
-# ==============================
-# Paths
-# ==============================
-BASE_DIR = Path("C:/Users/admin/OneDrive/Documents/Repositorio-laboratorio-de-programaci-n-cient-fica-grupo-LosTcg-1/Lab8")
+
+BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "models" / "best_xgb_model.pkl"
 
-# ==============================
-# Load model
-# ==============================
+
 with open(MODEL_PATH, "rb") as f:
     model = pickle.load(f)
 
-# ==============================
-# Define FastAPI app
-# ==============================
+
 app = FastAPI(title="Potabilidad API", version="1.0")
 
-# ==============================
-# Request model
-# ==============================
+
 class WaterSample(BaseModel):
     ph: float
     Hardness: float
@@ -36,9 +28,7 @@ class WaterSample(BaseModel):
     Trihalomethanes: float
     Turbidity: float
 
-# ==============================
-# Routes
-# ==============================
+
 @app.get("/")
 async def home():
     """
@@ -46,16 +36,17 @@ async def home():
     """
     return {
         "description": "API para predecir potabilidad del agua usando XGBoost optimizado.",
+        "problem": "Se busca determinar si agua con ciertas caracteristicas es potable o no",
         "input": {
-            "ph": "float",
-            "Hardness": "float",
-            "Solids": "float",
-            "Chloramines": "float",
-            "Sulfate": "float",
-            "Conductivity": "float",
-            "Organic_carbon": "float",
-            "Trihalomethanes": "float",
-            "Turbidity": "float"
+            "ph": "float - Ph del agua",
+            "Hardness": "float - Dureza del agua",
+            "Solids": "float - Total de solidos disueltos",
+            "Chloramines": "float - Nivel de cloro",
+            "Sulfate": "float - Cantidad de sulfatos por litro",
+            "Conductivity": "float - Conductividad del agua",
+            "Organic_carbon": "float - Cantidad total de carbon organico",
+            "Trihalomethanes": "float - Concentracion de THMs",
+            "Turbidity": "float - Turbiedad del agua"
         },
         "output": {
             "potabilidad": "0 = no potable, 1 = potable"
@@ -66,9 +57,9 @@ async def home():
 @app.post("/potabilidad/")
 async def predict(sample: WaterSample):
     """
-    Predict if water is potable
+    Predecir si el agua es potable o no
     """
-    # Convert input to numpy array for the model
+
     X = np.array([[sample.ph, sample.Hardness, sample.Solids,
                    sample.Chloramines, sample.Sulfate, sample.Conductivity,
                    sample.Organic_carbon, sample.Trihalomethanes, sample.Turbidity]])

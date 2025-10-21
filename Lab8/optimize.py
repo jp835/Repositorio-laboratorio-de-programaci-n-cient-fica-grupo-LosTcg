@@ -14,14 +14,13 @@ import matplotlib.pyplot as plt
 import optuna.visualization as vis
 import pkg_resources
 
-# ==============================
-# Paths
-# ==============================
-BASE_DIR = Path("C:/Users/admin/OneDrive/Documents/Repositorio-laboratorio-de-programaci-n-cient-fica-grupo-LosTcg-1/Lab8")
+
+BASE_DIR = Path(__file__).resolve().parent
 MLRUNS_PATH = BASE_DIR / "mlruns"
 PLOTS_PATH = BASE_DIR / "plots"
 MODELS_PATH = BASE_DIR / "models"
 
+#Si no existen las carpetas, las crea
 for p in [MLRUNS_PATH, PLOTS_PATH, MODELS_PATH]:
     p.mkdir(exist_ok=True)
 
@@ -29,9 +28,7 @@ mlflow.set_tracking_uri(MLRUNS_PATH.as_uri())
 EXPERIMENT_NAME = "Water_Optuna_XGBoost"
 mlflow.set_experiment(EXPERIMENT_NAME)
 
-# ==============================
-# Dataset
-# ==============================
+
 df = pd.read_csv(BASE_DIR / "water_potability.csv")
 X = df.drop(columns=["Potability"]).fillna(df.median())
 y = df["Potability"]
@@ -43,9 +40,7 @@ X_train, X_valid, y_train, y_valid = train_test_split(
     X_scaled, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# ==============================
-# Objective for Optuna
-# ==============================
+
 def objective(trial):
     params = {
         "objective": "binary:logistic",
@@ -60,8 +55,7 @@ def objective(trial):
         "reg_lambda": trial.suggest_float("reg_lambda", 0.1, 10),
         "reg_alpha": trial.suggest_float("reg_alpha", 0.0, 10.0),
         "random_state": 42,
-        "n_jobs": -1,
-        "use_label_encoder": False
+        "n_jobs": -1
     }
 
     run_name = f"XGBoost_lr_{params['learning_rate']:.3f}"
@@ -75,21 +69,19 @@ def objective(trial):
 
     return f1
 
-# ==============================
-# Optimize model
-# ==============================
+
 def optimize_model(n_trials=20):
     study = optuna.create_study(direction="maximize", study_name="xgb_water")
     study.optimize(objective, n_trials=n_trials)
 
-    # Save Optuna plots
+
     fig1 = vis.plot_optimization_history(study)
     fig2 = vis.plot_param_importances(study)
 
     fig1.write_image(PLOTS_PATH / "optimization_history.png")
     fig2.write_image(PLOTS_PATH / "param_importance.png")
 
-    # Train best model again and save
+  
     best_model = xgb.XGBClassifier(**study.best_params)
     best_model.fit(X_train, y_train)
 
@@ -97,7 +89,7 @@ def optimize_model(n_trials=20):
     with open(model_file, "wb") as f:
         pickle.dump(best_model, f)
 
-    # Feature importance plot
+  
     plt.figure(figsize=(10,6))
     plt.bar(range(len(best_model.feature_importances_)), best_model.feature_importances_)
     plt.title("Feature Importance")
@@ -106,13 +98,13 @@ def optimize_model(n_trials=20):
     plt.savefig(PLOTS_PATH / "feature_importance.png", bbox_inches="tight")
     plt.close()
 
-    # Save library versions
+
     versions_path = BASE_DIR / "library_versions.txt"
     with open(versions_path, "w") as f:
         for pkg in pkg_resources.working_set:
             f.write(f"{pkg.key}=={pkg.version}\n")
 
-    # Log artifacts to MLflow
+    
     with mlflow.start_run(run_name="Best_Model_Summary"):
         mlflow.log_artifact(PLOTS_PATH / "optimization_history.png", artifact_path="plots")
         mlflow.log_artifact(PLOTS_PATH / "param_importance.png", artifact_path="plots")
@@ -127,18 +119,14 @@ def optimize_model(n_trials=20):
     print("Best params:", study.best_params)
     return best_model
 
-# ==============================
-# Function to get best model from MLflow
-# ==============================
+
 def get_best_model(experiment_id):
     runs = mlflow.search_runs(experiment_id)
     best_run_id = runs.sort_values("metrics.valid_f1", ascending=False)["run_id"].iloc[0]
     best_model = mlflow.sklearn.load_model(f"runs:/{best_run_id}/model")
     return best_model
 
-# ==============================
-# Main
-# ==============================
+
 if __name__ == "__main__":
     optimize_model()
 

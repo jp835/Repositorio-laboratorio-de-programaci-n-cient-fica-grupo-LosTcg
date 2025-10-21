@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/juanpablomunoz/Desktop/Repositorio-laboratorio-de-programaci-n-cient-fica-grupo-LosTcg/Lab8/mlruns/879123941517289657/d49c89dbaf604ec3bd059336b2522927/artifacts
+end_time: 1761075552123
+entry_point_name: ''
+experiment_id: '879123941517289657'
+lifecycle_stage: active
+run_id: d49c89dbaf604ec3bd059336b2522927
+run_name: XGBoost_lr_0.015
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761075551805
+status: 3
+tags: []
+user_id: juanpablomunoz

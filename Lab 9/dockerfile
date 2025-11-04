@@ -1,0 +1,42 @@
+
+FROM python:3.10-slim
+
+
+RUN apt-get update && apt-get install -y curl git
+
+ENV AIRFLOW_HOME=/opt/airflow
+ENV PATH="$PATH:/opt/airflow/.local/bin"
+
+
+RUN mkdir -p $AIRFLOW_HOME/dags $AIRFLOW_HOME/logs $AIRFLOW_HOME/plugins
+WORKDIR $AIRFLOW_HOME
+
+
+RUN pip install --no-cache-dir \
+    apache-airflow==2.10.2 \
+    gradio \
+    scikit-learn \
+    pandas \
+    numpy \
+    joblib
+
+COPY ./dags $AIRFLOW_HOME/dags
+COPY ./logs $AIRFLOW_HOME/logs
+COPY ./plugins $AIRFLOW_HOME/plugins
+
+
+RUN airflow db init && \
+    airflow users create \
+        --username admin \
+        --password admin \
+        --firstname Air \
+        --lastname Flow \
+        --role Admin \
+        --email admin
+
+EXPOSE 8080
+
+
+CMD ["sh", "-c", "airflow scheduler & airflow webserver --port 8080"]
+
+

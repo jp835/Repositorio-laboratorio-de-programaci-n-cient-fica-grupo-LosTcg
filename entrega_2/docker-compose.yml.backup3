@@ -133,32 +133,32 @@ services:
   # ===========================
   # AIRFLOW WORKER
   # ===========================
-#   airflow-worker:
-#     build:
-#       context: .
-#       dockerfile: Dockerfile.airflow
-#     container_name: airflow_worker
-#     depends_on:
-#       - airflow-webserver
-#     environment:
-#       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-#       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-#       AIRFLOW__CELERY__BROKER_URL: redis://airflow-redis:6379/0
-#       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
-#       MLFLOW_TRACKING_URI: "http://mlflow:5000"
-#     volumes:
-#       - ./airflow/dags:/opt/airflow/dags
-#       - ./airflow/scripts:/opt/airflow/scripts
-#       - ./models:/opt/airflow/models
-#       - ./data:/opt/airflow/data
-#       - ./logs:/opt/airflow/logs
-#     command: celery worker
-#     networks:
-#       - sodai_network
-# 
-#   # ===========================
-#   # MLflow POSTGRES
-#   # ===========================
+  airflow-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: airflow_worker
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://airflow-redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ./models:/opt/airflow/models
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+    command: celery worker
+    networks:
+      - sodai_network
+
+  # ===========================
+  # MLflow POSTGRES
+  # ===========================
   mlflow-db:
     image: postgres:15
     container_name: mlflow_postgres

@@ -2,14 +2,11 @@ import pandas as pd
 import joblib
 import os
 import sys
-import optuna
-from sklearn.pipeline import Pipeline
 from lightgbm import LGBMClassifier
 from sklearn.metrics import f1_score, classification_report
 import mlflow
 import mlflow.lightgbm
 import numpy as np
-from sklearn.model_selection import train_test_split
 
 BASE_DIR = '/opt/airflow'
 PROCESSED_DIR = os.path.join(BASE_DIR, 'data', 'processed')
@@ -17,9 +14,8 @@ MODELS_DIR = os.path.join(BASE_DIR, 'models')
 MLFLOW_TRACKING_URI = os.getenv('MLFLOW_TRACKING_URI', 'http://mlflow:5000')
 EXPERIMENT_NAME = 'sodai_drinks_prod'
 
-def train_model_callable(trial_count: int = 10, use_gpu: bool = False):
-    '''Función que espera el DAG - con los parámetros exactos que necesita'''
-    print(f'🎯 EJECUTANDO train_model_callable desde DAG (trials: {trial_count}, GPU: {use_gpu})')
+def train_model_completo():
+    print('🎯 ENTRENAMIENTO COMPLETO - LightGBM')
     
     try:
         # Cargar datos
@@ -54,10 +50,10 @@ def train_model_callable(trial_count: int = 10, use_gpu: bool = False):
         with mlflow.start_run() as run:
             # Parámetros optimizados
             params = {
-                'n_estimators': 100,
+                'n_estimators': 150,
                 'learning_rate': 0.1,
-                'num_leaves': 31,
-                'max_depth': 6,
+                'num_leaves': 63,
+                'max_depth': 7,
                 'min_child_samples': 20,
                 'subsample': 0.8,
                 'colsample_bytree': 0.8,
@@ -75,13 +71,21 @@ def train_model_callable(trial_count: int = 10, use_gpu: bool = False):
             
             # Predicciones y métricas
             y_pred = model.predict(X_train)
+            y_pred_proba = model.predict_proba(X_train)[:, 1]
+            
             f1 = f1_score(y_train, y_pred)
             accuracy = (y_pred == y_train).mean()
             
             print('')
-            print('📊 RESULTADOS:')
+            print('📊 RESULTADOS DEL ENTRENAMIENTO:')
             print('   F1 Score:', round(f1, 4))
             print('   Accuracy:', round(accuracy, 4))
+            print('   Positive Ratio:', round(y_train.mean(), 4))
+            
+            # Reporte de clasificación
+            print('')
+            print('📋 Classification Report:')
+            print(classification_report(y_train, y_pred))
             
             # Log en MLflow
             mlflow.log_params(params)
@@ -89,27 +93,42 @@ def train_model_callable(trial_count: int = 10, use_gpu: bool = False):
             mlflow.log_metric('train_accuracy', accuracy)
             mlflow.log_metric('scale_pos_weight', scale)
             mlflow.log_metric('train_size', len(X_train))
+            mlflow.log_metric('positive_class_ratio', y_train.mean())
             
             print('✅ Métricas registradas en MLflow')
             
             # GUARDAR MODELO LOCALMENTE
-            model_path = os.path.join(MODELS_DIR, 'lightgbm_model_dag.joblib')
+            model_path = os.path.join(MODELS_DIR, 'lightgbm_model_final.joblib')
             joblib.dump(model, model_path)
             print('💾 Modelo guardado en:', model_path)
             
+            # También guardar pipeline completo
+            pipeline_path = os.path.join(MODELS_DIR, 'full_pipeline.joblib')
+            try:
+                # Cargar pipelines de preprocesamiento
+                eng_pipeline = joblib.load(os.path.join(MODELS_DIR, 'engineering_pipeline_V2.joblib'))
+                preprocessor = joblib.load(os.path.join(MODELS_DIR, 'preprocessor_V2.joblib'))
+                
+                # Crear pipeline completo
+                from sklearn.pipeline import Pipeline
+                full_pipeline = Pipeline([
+                    ('engineering', eng_pipeline),
+                    ('preprocessing', preprocessor),
+                    ('classifier', model)
+                ])
+                
+                joblib.dump(full_pipeline, pipeline_path)
+                print('💾 Pipeline completo guardado en:', pipeline_path)
+            except Exception as e:
+                print('⚠️  No se pudo guardar pipeline completo:', e)
+            
             print('🔗 Run ID:', run.info.run_id)
-            print('🎉 TAREA DE ENTRENAMIENTO COMPLETADA')
+            print('🎉 ENTRENAMIENTO COMPLETADO EXITOSAMENTE')
             
     except Exception as e:
-        print('❌ Error en train_model_callable:', e)
+        print('❌ Error:', e)
         import traceback
         traceback.print_exc()
-        raise e
-
-# Función de compatibilidad para ejecución manual
-def train_model_corregido():
-    '''Función original para ejecución manual'''
-    train_model_callable(trial_count=5, use_gpu=False)
 
 if __name__ == '__main__':
-    train_model_corregido()
+    train_model_completo()

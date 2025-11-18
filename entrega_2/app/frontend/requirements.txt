@@ -1,3 +1,0 @@
-# app/frontend/requirements.txt
-gradio
-requests

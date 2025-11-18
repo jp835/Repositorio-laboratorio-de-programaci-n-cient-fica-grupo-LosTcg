@@ -1,9 +1,0 @@
-# app/backend/requirements.txt
-fastapi
-uvicorn[standard]
-scikit-learn
-pandas
-numpy
-joblib
-pydantic
-psycopg2-binary

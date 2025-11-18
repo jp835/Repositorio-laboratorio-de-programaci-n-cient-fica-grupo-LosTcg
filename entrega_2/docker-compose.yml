@@ -1,0 +1,213 @@
+# docker-compose.yml (Principal - Airflow + MLflow)
+version: '3.8'
+
+services:
+  # ===========================
+  # AIRFLOW POSTGRES
+  # ===========================
+  airflow-postgres:
+    image: postgres:15
+    container_name: airflow_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sodai_network
+
+  # ===========================
+  # AIRFLOW REDIS
+  # ===========================
+  airflow-redis:
+    image: redis:7
+    container_name: airflow_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - sodai_network
+
+  # ===========================
+  # AIRFLOW INIT (DB + Admin user) - CORREGIDO
+  # ===========================
+  # ===========================
+  # AIRFLOW INIT (DB + Admin user) - VERSIÓN SIMPLIFICADA
+  # ===========================
+  airflow-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: airflow_init
+    depends_on:
+      - airflow-postgres
+      - airflow-redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://airflow-redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: mysecret
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ./models:/opt/airflow/models
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+    command: >
+      bash -c "
+      echo 'Waiting for PostgreSQL...' &&
+      sleep 15 &&
+      echo 'Initializing Airflow database...' &&
+      airflow db migrate &&
+      echo 'Creating admin user...' &&
+      airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin &&
+      echo 'Airflow initialization completed successfully!'
+      "
+    networks:
+      - sodai_network
+
+  # ===========================
+  # AIRFLOW WEBSERVER
+  # ===========================
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: airflow_webserver
+    depends_on:
+      - airflow-init
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://airflow-redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: mysecret
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ./models:/opt/airflow/models
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    command: webserver
+    networks:
+      - sodai_network
+
+  # ===========================
+  # AIRFLOW SCHEDULER
+  # ===========================
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: airflow_scheduler
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://airflow-redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ./models:/opt/airflow/models
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+    command: scheduler
+    networks:
+      - sodai_network
+
+  # ===========================
+  # AIRFLOW WORKER
+  # ===========================
+  airflow-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: airflow_worker
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://airflow-redis:6379/0
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ./models:/opt/airflow/models
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+    command: celery worker
+    networks:
+      - sodai_network
+
+  # ===========================
+  # MLflow POSTGRES
+  # ===========================
+  mlflow-db:
+    image: postgres:15
+    container_name: mlflow_postgres
+    environment:
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflow
+      POSTGRES_DB: mlflow
+    volumes:
+      - mlflow_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sodai_network
+
+  # ===========================
+  # MLflow SERVER
+  # ===========================
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: mlflow_server
+    depends_on:
+      - mlflow-db
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    volumes:
+      - ./mlflow_artifacts:/mlflow/artifacts
+      - ./mlflow-data:/mlflow/data
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://mlflow:mlflow@mlflow-db:5432/mlflow
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    networks:
+      - sodai_network
+
+volumes:
+  airflow_postgres_data:
+  mlflow_postgres_data:
+
+networks:
+  sodai_network:
+    driver: bridge

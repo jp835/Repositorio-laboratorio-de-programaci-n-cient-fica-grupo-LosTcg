@@ -1,0 +1,23 @@
+# Asegúrate de que tu Dockerfile.airflow tenga esto:
+FROM apache/airflow:2.8.1
+USER root
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+USER airflow
+
+# Copiar requirements
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Crear directorio para scripts y copiarlos
+USER root
+RUN mkdir -p /opt/airflow/scripts
+COPY airflow/scripts /opt/airflow/scripts
+RUN chown -R airflow:root /opt/airflow/scripts
+USER airflow

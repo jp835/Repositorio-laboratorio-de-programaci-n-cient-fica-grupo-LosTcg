@@ -1,0 +1,63 @@
+# app/docker-compose.yml
+version: '3.8'
+
+services:
+  # --- Backend FastAPI ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sodai_drinks_backend
+    ports:
+      - "8000:8000"
+    environment:
+      # MLflow server URL, accesible a través del network Docker
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      BACKEND_URL: "http://backend:8000"
+    depends_on:
+      # Asegura que MLflow esté disponible para cargar el modelo
+      - mlflow 
+    networks:
+      - sodai_drinks_network
+
+  # --- Frontend Gradio ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sodai_drinks_frontend
+    ports:
+      - "8501:8501"
+    environment:
+      # URL del backend (FastAPI service name)
+      BACKEND_URL: "http://backend:8000"
+    depends_on:
+      - backend
+    networks:
+      - sodai_drinks_network
+
+  # --- MLflow Server (Necesario si no está corriendo en el directorio principal) ---
+  # Si MLflow ya está corriendo con el docker-compose.yml principal, puedes comentar este.
+  mlflow:
+    build:
+      context: ../../.
+      dockerfile: Dockerfile.mlflow
+    container_name: mlflow_server_app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../../mlflow-data:/mlflow/data
+      - ../../mlflow_artifacts:/mlflow/artifacts
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/data/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    networks:
+      - sodai_drinks_network
+
+networks:
+  sodai_drinks_network:
+    driver: bridge
+

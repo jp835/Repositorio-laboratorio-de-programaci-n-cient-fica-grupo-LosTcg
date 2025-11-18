@@ -1,0 +1,10 @@
+# Dockerfile.airflow
+FROM apache/airflow:2.10.2
+
+# Cambiar a usuario airflow antes de instalar paquetes
+USER airflow
+
+# Instalar paquetes de Python necesarios
+RUN pip install --no-cache-dir joblib pandas scikit-learn
+
+

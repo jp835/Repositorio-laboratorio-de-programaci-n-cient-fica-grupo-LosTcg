@@ -1,0 +1,10 @@
+# Dockerfile.mlflow
+FROM ghcr.io/mlflow/mlflow:latest
+
+# Instala dependencias adicionales necesarias
+RUN pip install --no-cache-dir psycopg2-binary joblib pandas numpy scikit-learn
+
+
+
+
+

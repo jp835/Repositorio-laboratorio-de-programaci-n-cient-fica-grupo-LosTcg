@@ -1,0 +1,31 @@
+# app/docker-compose.yml
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "8000:8000"  # Exponer FastAPI
+    volumes:
+      - backend_modelos:/app/backend/Modelos  # Volumen interno de Docker
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "7860:7860"  # Exponer Gradio
+    depends_on:
+      - backend
+    environment:
+      - PYTHONUNBUFFERED=1
+
+volumes:
+  backend_modelos:
+

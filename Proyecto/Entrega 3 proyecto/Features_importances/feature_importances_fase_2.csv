@@ -1,0 +1,43 @@
+feature,importance
+productos_diferentes_semana,2315
+total_compras_producto_semana,1658
+items_promedio_por_semana,915
+size,569
+X,442
+semana,331
+customer_type_ABARROTES,210
+brand_Brand 3,179
+brand_Brand 24,175
+customer_type_CANAL FRIO,158
+brand_Brand 44,143
+brand_Brand 34,142
+segment_MEDIUM,106
+customer_type_MINIMARKET,102
+brand_Brand 31,81
+customer_type_MAYORISTA,77
+package_BOTELLA,69
+segment_HIGH,56
+brand_Brand 35,50
+segment_PREMIUM,48
+segment_LOW,47
+customer_type_RESTAURANT,45
+brand_Brand 10,29
+brand_Brand 7,19
+brand_Brand 21,19
+package_LATA,18
+brand_Brand 1,17
+brand_Brand 16,11
+brand_Brand 15,10
+package_KEG,6
+customer_type_TIENDA DE CONVENIENCIA,5
+brand_Brand 54,5
+brand_Brand 33,3
+brand_Brand 52,1
+brand_Brand 14,1
+num_deliver_per_week,0
+brand_Brand 28,0
+brand_Brand 22,0
+customer_type_SUPERMERCADO,0
+brand_Brand 26,0
+brand_Brand 2,0
+brand_Brand 55,0
